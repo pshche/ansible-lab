@@ -14,7 +14,7 @@
 1. Установить Docker Desktop и Ansible.
 2. Запустить `./lab.sh` — поднимет два контейнера, настроит SSH, создаст `inventory.yaml` и `ansible.cfg`.
 3. Проверить: `ansible all -m ping` → оба хоста отвечают `pong`.
-4. Прогнать: `ansible-playbook playbook.yaml --ask-vault-pass` (пароль vault — у преподавателя).
+4. Прогнать: `ansible-playbook playbook.yaml --ask-vault-pass` (пароль vault Пароль от Ansible Vault: 123).
 
 ## Структура
 
@@ -97,7 +97,3 @@ ansible-playbook playbook.yaml --ask-vault-pass   # второй раз — chan
 secrets.yml зашифрован через ansible-vault; пароль хранится вне репозитория.
 
 Порты bind на 127.0.0.1, наружу не светятся.
-
-
-
-Пароль от Ansible Vault: 123
