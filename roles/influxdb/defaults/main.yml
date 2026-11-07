@@ -1,0 +1,10 @@
+---
+influxdb_version: "2.7.10"
+influxdb_deb_url: "https://dl.influxdata.com/influxdb/releases/influxdb2_{{ influxdb_version }}-1_amd64.deb"
+
+influx_ip: "127.0.0.1"
+influx_username: "admin"
+influx_password: "default-password"
+influx_org: "default-org"
+influx_bucket: "telegraf"
+influx_token: "default-token"

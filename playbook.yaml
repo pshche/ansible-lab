@@ -1,13 +1,67 @@
+---
+- name: Install and configure InfluxDB
+  hosts: practicum_servers
+  become: yes
+  vars_files:
+    - secrets.yml
+  roles:
+    - influxdb
+
+- name: Install and configure Telegraf
+  hosts: practicum_servers
+  become: yes
+  vars_files:
+    - secrets.yml
+  roles:
+    - telegraf
+
 - name: Install and configure Grafana
   hosts: practicum_servers
   become: yes
-
-  # Место подключения зашифрованного файла
   vars_files:
     - secrets.yml
-  # Новая директива, где указаны пути до вызываемых ролей
-  # В этом примере директория с ролью находится вместе с файлом плейбука
   roles:
     - grafana
-    - telegraf
-  
+
+# ===== Аналог `ansible all -m ping`, но для сервисов =====
+- name: Verify all services
+  hosts: practicum_servers
+  gather_facts: false
+  tasks:
+    - name: Check Grafana health
+      uri:
+        url: "http://127.0.0.1:3000/api/health"
+        status_code: 200
+      register: grafana_health
+      failed_when: false
+      changed_when: false
+
+    - name: Check InfluxDB health
+      uri:
+        url: "http://127.0.0.1:8086/health"
+        status_code: 200
+      register: influx_health
+      failed_when: false
+      changed_when: false
+
+    - name: Check InfluxDB setup status
+      uri:
+        url: "http://127.0.0.1:8086/api/v2/setup"
+        method: GET
+      register: influx_setup
+      failed_when: false
+      changed_when: false
+
+    - name: Check Telegraf process
+      command: pgrep -x telegraf
+      register: telegraf_proc
+      failed_when: false
+      changed_when: false
+
+    - name: Show verification results
+      debug:
+        msg:
+          - "Grafana:    {{ 'OK' if grafana_health.status | default(0) == 200 else 'FAIL (' ~ (grafana_health.status | default('error')) ~ ')' }}"
+          - "InfluxDB:   {{ 'OK' if influx_health.status | default(0) == 200 else 'FAIL (' ~ (influx_health.status | default('error')) ~ ')' }}"
+          - "Setup:      {{ 'OK' if (influx_setup.json is defined and influx_setup.json.allowed is defined and not influx_setup.json.allowed) else 'NOT DONE' }}"
+          - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}"

@@ -1,0 +1,20 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for influxdb
+- name: Restart InfluxDB (systemd hosts)
+  listen: "influxdb reload"
+  systemd_service:
+    name: influxdb
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr | default('') == "systemd"
+
+- name: Restart InfluxDB (container-friendly)
+  listen: "influxdb reload"
+  shell: |
+    pkill influxd || true
+    sleep 2
+    nohup /usr/bin/influxd > /var/log/influxdb.log 2>&1 &
+  args:
+    executable: /bin/bash
+  when: ansible_service_mgr | default('') != "systemd"

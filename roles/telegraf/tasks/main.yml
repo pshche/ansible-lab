@@ -1,7 +1,6 @@
 #SPDX-License-Identifier: MIT-0
 ---
 # tasks file for telegraf
----
 - name: Ensure OS is Debian-based
   fail:
     msg: "Только Debian-based. Текущая ОС: {{ ansible_os_family }}"
@@ -27,6 +26,19 @@
         deb: "{{ telegraf_deb_url }}"
         update_cache: yes
       when: not telegraf_binary.stat.exists
+      
+    - name: Ensure Telegraf process is running (container-friendly)
+      shell: |
+        if ! ss -ltn 2>/dev/null | grep -q ':8125' && ! pgrep -x telegraf > /dev/null; then
+          mkdir -p /var/log/telegraf
+          nohup /usr/bin/telegraf --config /etc/telegraf/telegraf.conf \
+            > /var/log/telegraf.log 2>&1 &
+          sleep 2
+        fi
+      args:
+          executable: /bin/bash
+      when: ansible_service_mgr | default('') != "systemd"
+      changed_when: false
 
     - name: Template Telegraf config
       template:

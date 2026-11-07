@@ -1,0 +1,76 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for influxdb
+- name: Ensure OS is Debian-based
+  fail:
+    msg: "Только Debian-based. Текущая ОС: {{ ansible_os_family }}"
+  when: ansible_os_family != "Debian"
+
+- name: Installation block
+  become: yes
+  block:
+    - name: Ensure ca-certificates is installed
+      apt:
+        name: ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Check if InfluxDB is already installed
+      stat:
+        path: /usr/bin/influxd
+      register: influx_binary
+      changed_when: false
+
+    - name: Install InfluxDB package
+      apt:
+        deb: "{{ influxdb_deb_url }}"
+        update_cache: yes
+      when: not influx_binary.stat.exists
+
+- name: Ensure InfluxDB process is running (container-friendly)
+  become: yes
+  shell: |
+    if ! ss -ltn 2>/dev/null | grep -q ':8086'; then
+      nohup /usr/bin/influxd > /var/log/influxdb.log 2>&1 &
+      sleep 5
+    fi
+  args:
+    executable: /bin/bash
+  when: ansible_service_mgr | default('') != "systemd"
+  changed_when: false
+
+- name: Wait for InfluxDB to be ready
+  uri:
+    url: "http://{{ influx_ip }}:8086/health"
+    status_code: 200
+  register: influx_health
+  until: influx_health.status == 200
+  retries: 20
+  delay: 2
+  changed_when: false
+
+# --- Идемпотентный setup ---
+# /api/v2/setup (GET) возвращает {"allowed": true}, если база ещё не настроена,
+# и {"allowed": false}, если setup уже выполнен. Используем это как проверку.
+- name: Check if InfluxDB setup is required
+  uri:
+    url: "http://{{ influx_ip }}:8086/api/v2/setup"
+    method: GET
+  register: influx_setup_check
+  failed_when: false
+  changed_when: false
+
+- name: Setup InfluxDB (org, bucket, user, token)
+  uri:
+    url: "http://{{ influx_ip }}:8086/api/v2/setup"
+    method: POST
+    body:
+      org: "{{ influx_org }}"
+      bucket: "{{ influx_bucket }}"
+      username: "{{ influx_username }}"
+      password: "{{ influx_password }}"
+      token: "{{ influx_token }}"
+      retentionPeriodSeconds: 3600
+    body_format: json
+    status_code: [201, 422]
+  when: influx_setup_check.json.allowed | default(true)
