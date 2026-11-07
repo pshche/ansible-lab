@@ -14,7 +14,7 @@
 1. Установить Docker Desktop и Ansible.
 2. Запустить `./lab.sh` — поднимет два контейнера, настроит SSH, создаст `inventory.yaml` и `ansible.cfg`.
 3. Проверить: `ansible all -m ping` → оба хоста отвечают `pong`.
-4. Прогнать: `ansible-playbook playbook.yaml --ask-vault-pass` (пароль vault Пароль от Ansible Vault: 123).
+4. Прогнать: `ansible-playbook playbook.yaml --ask-vault-pass` (пароль от Ansible Vault: 123).
 
 ## Структура
 
