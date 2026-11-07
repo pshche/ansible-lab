@@ -1,26 +1,17 @@
 ---
-- name: Install and configure InfluxDB
+- name: Install and configure monitoring stack
   hosts: practicum_servers
   become: yes
   vars_files:
     - secrets.yml
+  pre_tasks:
+    - name: Ensure OS is Debian-based
+      fail:
+        msg: "Только Debian-based. Текущая ОС: {{ ansible_os_family }}"
+      when: ansible_os_family != "Debian"
   roles:
     - influxdb
-
-- name: Install and configure Telegraf
-  hosts: practicum_servers
-  become: yes
-  vars_files:
-    - secrets.yml
-  roles:
     - telegraf
-
-- name: Install and configure Grafana
-  hosts: practicum_servers
-  become: yes
-  vars_files:
-    - secrets.yml
-  roles:
     - grafana
 
 # ===== Аналог `ansible all -m ping`, но для сервисов =====
@@ -61,7 +52,7 @@
     - name: Show verification results
       debug:
         msg:
-          - "Grafana:    {{ 'OK' if grafana_health.status | default(0) == 200 else 'FAIL (' ~ (grafana_health.status | default('error')) ~ ')' }}"
-          - "InfluxDB:   {{ 'OK' if influx_health.status | default(0) == 200 else 'FAIL (' ~ (influx_health.status | default('error')) ~ ')' }}"
+          - "Grafana:    {{ 'OK' if grafana_health.status | default(0) == 200 else 'FAIL (' ~ (grafana_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ grafana_local_port }}"
+          - "InfluxDB:   {{ 'OK' if influx_health.status | default(0) == 200 else 'FAIL (' ~ (influx_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ influx_local_port }}"
           - "Setup:      {{ 'OK' if (influx_setup.json is defined and influx_setup.json.allowed is defined and not influx_setup.json.allowed) else 'NOT DONE' }}"
-          - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}"
+          - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}  →  →  InfluxDB :{{ influx_local_port }}"

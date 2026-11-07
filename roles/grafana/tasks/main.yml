@@ -1,9 +1,4 @@
 ---
-- name: Ensure OS is Debian-based
-  fail:
-    msg: "Этот плейбук предназначен только для Debian-based систем. Текущая ОС: {{ ansible_os_family }}"
-  when: ansible_os_family != "Debian"
-
 - name: Ensure ca-certificates is installed
   apt:
     name: ca-certificates

@@ -50,11 +50,13 @@ docker rm -f "$C1" "$C2" >/dev/null 2>&1 || true
 docker run -d --name "$C1" \
   -p 127.0.0.1:${PORT1}:22 \
   -p 127.0.0.1:${GRAFANA_PORT1}:3000 \
+  -p 127.0.0.1:8086:8086 \
   "$IMAGE" >/dev/null
 
 docker run -d --name "$C2" \
   -p 127.0.0.1:${PORT2}:22 \
   -p 127.0.0.1:${GRAFANA_PORT2}:3000 \
+  -p 127.0.0.1:8087:8086 \
   "$IMAGE" >/dev/null
 
 for c in "$C1" "$C2"; do
@@ -81,9 +83,13 @@ all:
         first_server:
           ansible_host: 127.0.0.1
           ansible_port: $PORT1
+          grafana_local_port: 3000
+          influx_local_port: 8086
         second_server:
           ansible_host: 127.0.0.1
           ansible_port: $PORT2
+          grafana_local_port: 3001
+          influx_local_port: 8087
       vars:
         ansible_user: ubuntu
         ansible_ssh_private_key_file: "{{ playbook_dir }}/ansible_lab"
@@ -112,4 +118,16 @@ echo
 echo "Лаборатория готова: $LAB_DIR"
 echo "  Grafana first_server:  http://localhost:${GRAFANA_PORT1}"
 echo "  Grafana second_server: http://localhost:${GRAFANA_PORT2}"
-echo "Остановить: docker rm -f $C1 $C2"
+echo "  InfluxDB first_server: http://localhost:8086"
+echo "  InfluxDB second_server: http://localhost:8087"
+echo
+echo "─────────────────────────────────────────────────────────────"
+echo "Дальше — запусти плейбук с паролем от Ansible Vault:"
+echo
+echo "  ansible-playbook playbook.yaml --ask-vault-pass"
+echo
+echo "Пароль от vault — в README.md, раздел «Доступы для проверки»."
+echo "  (файл secrets.yml зашифрован, без пароля плейбук не запустится (123))"
+echo "─────────────────────────────────────────────────────────────"
+echo
+echo "Остановить лабораторию: docker rm -f $C1 $C2"
