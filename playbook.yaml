@@ -1,0 +1,13 @@
+- name: Install and configure Grafana
+  hosts: practicum_servers
+  become: yes
+
+  # Место подключения зашифрованного файла
+  vars_files:
+    - secrets.yml
+  # Новая директива, где указаны пути до вызываемых ролей
+  # В этом примере директория с ролью находится вместе с файлом плейбука
+  roles:
+    - grafana
+    - telegraf
+  

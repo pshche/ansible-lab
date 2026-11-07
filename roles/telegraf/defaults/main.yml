@@ -1,0 +1,7 @@
+---
+telegraf_version: "1.29.0"
+telegraf_deb_url: "https://dl.influxdata.com/telegraf/releases/telegraf_{{ telegraf_version }}_amd64.deb"
+
+# значения по умолчанию, переопределяются в secrets.yml
+influx_token: "default-token"
+influx_org: "default-org"

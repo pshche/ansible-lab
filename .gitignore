@@ -1,0 +1,9 @@
+ansible_lab
+*.pem
+*.key
+id_rsa*
+*.retry
+*.log
+.ansible/
+.DS_Store
+*.tar

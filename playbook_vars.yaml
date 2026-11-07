@@ -1,0 +1,14 @@
+- name: Variables examples
+  hosts: localhost
+  connection: local
+
+  tasks:
+    - name: Вывод переменной
+      vars:
+        my_variable: "Hello from task"
+      debug:
+        msg: "{{ my_variable }}"
+
+    - name: Тут переменной нет
+      debug:
+        msg: "{{ my_variable }}"

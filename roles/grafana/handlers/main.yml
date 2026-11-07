@@ -1,0 +1,21 @@
+---
+- name: Restart Grafana (systemd hosts)
+  listen: "grafana reload"
+  systemd_service:
+    name: grafana-server
+    state: restarted
+    enabled: yes
+  when: ansible_service_mgr | default('') == "systemd"
+
+- name: Restart Grafana (container-friendly, no systemd)
+  listen: "grafana reload"
+  shell: |
+    pkill grafana || true
+    sleep 2
+    nohup /usr/share/grafana/bin/grafana server \
+      --config /etc/grafana/grafana.ini \
+      --homepath /usr/share/grafana \
+      > /var/log/grafana/grafana.log 2>&1 &
+  args:
+    executable: /bin/bash
+  when: ansible_service_mgr | default('') != "systemd"

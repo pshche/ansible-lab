@@ -1,0 +1,28 @@
+[security]
+admin_user = {{ grafana_admin }}
+admin_password = {{ grafana_password }}
+
+[database]
+path = {{ grafana_databasepath }}
+
+[log]
+{% if env_type == "production" %}
+level = debug
+{% else %}
+level = info
+{% endif %}
+
+{% if grafana_log_mode == "file" %}
+mode = file
+logs_path = {{ grafana_logs_path }}
+log_file_name = {{ grafana_log_file_name }}
+max_lines = {{ grafana_max_lines }}
+max_size = {{ grafana_max_size }}
+daily_rotate = {{ grafana_daily_rotate | lower }}
+max_days = {{ grafana_max_days }}
+{% elif grafana_log_mode == "syslog" %}
+mode = syslog
+syslog_address = {{ grafana_syslog_address }}
+syslog_facility = {{ grafana_syslog_facility }}
+syslog_format = {{ grafana_syslog_format }}
+{% endif %}

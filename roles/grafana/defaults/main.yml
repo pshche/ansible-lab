@@ -1,0 +1,22 @@
+---
+grafana_version: 12.1.0
+grafana_deb_url: "https://dl.grafana.com/oss/release/grafana_{{ grafana_version }}_amd64.deb"
+
+grafana_admin: super-admin
+grafana_password: default-pass
+grafana_databasepath: grafananew2.db
+
+# логирование
+env_type: development
+grafana_log_mode: file
+
+grafana_logs_path: /var/log/grafana
+grafana_log_file_name: grafana.log
+grafana_max_lines: 1000000
+grafana_max_size: 100
+grafana_daily_rotate: true
+grafana_max_days: 7
+
+grafana_syslog_address: localhost:514
+grafana_syslog_facility: local0
+grafana_syslog_format: text

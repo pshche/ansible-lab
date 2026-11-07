@@ -1,0 +1,38 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for telegraf
+---
+- name: Ensure OS is Debian-based
+  fail:
+    msg: "Только Debian-based. Текущая ОС: {{ ansible_os_family }}"
+  when: ansible_os_family != "Debian"
+
+- name: Installation block
+  become: yes
+  block:
+    - name: Ensure ca-certificates is installed
+      apt:
+        name: ca-certificates
+        state: present
+        update_cache: yes
+
+    - name: Check if Telegraf is already installed
+      stat:
+        path: /usr/bin/telegraf
+      register: telegraf_binary
+      changed_when: false
+
+    - name: Install Telegraf package
+      apt:
+        deb: "{{ telegraf_deb_url }}"
+        update_cache: yes
+      when: not telegraf_binary.stat.exists
+
+    - name: Template Telegraf config
+      template:
+        src: telegraf.conf.j2
+        dest: /etc/telegraf/telegraf.conf
+        owner: root
+        group: root
+        mode: '0644'
+      notify: "telegraf reload"
