@@ -1,6 +1,4 @@
-#SPDX-License-Identifier: MIT-0
 ---
-# handlers file for telegraf
 - name: Restart Telegraf (systemd hosts)
   listen: "telegraf reload"
   systemd_service:
@@ -14,6 +12,7 @@
   shell: |
     pkill telegraf || true
     sleep 1
+    mkdir -p /var/log/telegraf
     nohup /usr/bin/telegraf --config /etc/telegraf/telegraf.conf \
       > /var/log/telegraf.log 2>&1 &
   args:

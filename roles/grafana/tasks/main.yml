@@ -70,7 +70,7 @@
 # завершиться раньше, чем процесс поднимется.
 - name: Wait for Grafana to be ready
   uri:
-    url: http://localhost:3000/api/health
+    url: http://127.0.0.1:3000/api/health
     status_code: 200
   register: health
   until: health.status == 200

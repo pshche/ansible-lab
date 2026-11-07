@@ -21,17 +21,30 @@
       register: influx_binary
       changed_when: false
 
-    - name: Install InfluxDB package
+    - name: Download InfluxDB .deb with extended timeout
+      get_url:
+        url: "{{ influxdb_deb_url }}"
+        dest: "/tmp/influxdb2.deb"
+        timeout: 120
+      when: not influx_binary.stat.exists
+
+    - name: Install InfluxDB package from local file
       apt:
-        deb: "{{ influxdb_deb_url }}"
-        update_cache: yes
+        deb: "/tmp/influxdb2.deb"
+      when: not influx_binary.stat.exists
+
+    - name: Remove InfluxDB .deb after install
+      file:
+        path: /tmp/influxdb2.deb
+        state: absent
       when: not influx_binary.stat.exists
 
 - name: Ensure InfluxDB process is running (container-friendly)
   become: yes
   shell: |
     if ! ss -ltn 2>/dev/null | grep -q ':8086'; then
-      nohup /usr/bin/influxd > /var/log/influxdb.log 2>&1 &
+      mkdir -p /var/log/influxdb
+      nohup /usr/bin/influxd > /var/log/influxdb/influxdb.log 2>&1 &
       sleep 5
     fi
   args:
@@ -51,7 +64,7 @@
 
 # --- Идемпотентный setup ---
 # /api/v2/setup (GET) возвращает {"allowed": true}, если база ещё не настроена,
-# и {"allowed": false}, если setup уже выполнен. Используем это как проверку.
+# и {"allowed": false}, если setup уже выполнен.
 - name: Check if InfluxDB setup is required
   uri:
     url: "http://{{ influx_ip }}:8086/api/v2/setup"

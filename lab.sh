@@ -21,7 +21,7 @@ cat > Dockerfile <<'DOCKERFILE'
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      openssh-server python3 sudo ca-certificates curl \
+        openssh-server python3 sudo ca-certificates curl iproute2 \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu:ubuntu' | chpasswd \
@@ -86,7 +86,7 @@ all:
           ansible_port: $PORT2
       vars:
         ansible_user: ubuntu
-        ansible_ssh_private_key_file: ./ansible_lab
+        ansible_ssh_private_key_file: "{{ playbook_dir }}/ansible_lab"
         ansible_python_interpreter: /usr/bin/python3
 EOF
 

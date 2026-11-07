@@ -1,7 +1,7 @@
 FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      openssh-server python3 sudo ca-certificates curl \
+        openssh-server python3 sudo ca-certificates curl iproute2 \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu:ubuntu' | chpasswd \
