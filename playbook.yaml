@@ -14,10 +14,13 @@
     - telegraf
     - grafana
 
-# ===== Аналог `ansible all -m ping`, но для сервисов =====
 - name: Verify all services
   hosts: practicum_servers
   gather_facts: false
+  vars_files:
+    - secrets.yml
+  vars:
+    grafana_admin: admin
   tasks:
     - name: Check Grafana health
       uri:
@@ -49,10 +52,22 @@
       failed_when: false
       changed_when: false
 
+    - name: Check Grafana datasources
+      uri:
+        url: "http://127.0.0.1:3000/api/datasources"
+        user: "{{ grafana_admin }}"
+        password: "{{ grafana_password }}"
+        force_basic_auth: true
+        status_code: 200
+      register: grafana_datasources
+      failed_when: false
+      changed_when: false
+
     - name: Show verification results
       debug:
         msg:
           - "Grafana:    {{ 'OK' if grafana_health.status | default(0) == 200 else 'FAIL (' ~ (grafana_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ grafana_local_port }}"
           - "InfluxDB:   {{ 'OK' if influx_health.status | default(0) == 200 else 'FAIL (' ~ (influx_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ influx_local_port }}"
           - "Setup:      {{ 'OK' if (influx_setup.json is defined and influx_setup.json.allowed is defined and not influx_setup.json.allowed) else 'NOT DONE' }}"
+          - "Datasource: {{ 'OK (InfluxDB)' if grafana_datasources.status | default(0) == 200 and grafana_datasources.json | length > 0 else 'MISSING' }}"
           - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}  →  →  InfluxDB :{{ influx_local_port }}"

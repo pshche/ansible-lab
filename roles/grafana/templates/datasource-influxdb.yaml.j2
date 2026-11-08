@@ -1,0 +1,16 @@
+apiVersion: 1
+
+datasources:
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://127.0.0.1:8086
+    isDefault: true
+    editable: true
+    jsonData:
+      version: Flux
+      organization: "{{ influx_org }}"
+      defaultBucket: "{{ influx_bucket }}"
+      tlsSkipVerify: true
+    secureJsonData:
+      token: "{{ influx_token }}"

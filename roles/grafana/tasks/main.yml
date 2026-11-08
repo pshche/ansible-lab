@@ -1,4 +1,7 @@
+#SPDX-License-Identifier: MIT-0
 ---
+# tasks file for grafana
+
 - name: Ensure ca-certificates is installed
   apt:
     name: ca-certificates
@@ -28,12 +31,10 @@
     - not grafana_binary.stat.exists
     - grafana_deb_check.status in [200, 302]
 
-# Запускаем процесс, если он ещё не работает (после установки или после
-# пересоздания контейнера). На systemd-хостах это делает systemd_service
-# в handler'е — отдельный таск не нужен.
 - name: Ensure Grafana process is running (container-friendly)
   shell: |
-    if ! pgrep -f grafana-server > /dev/null; then
+    if ! ss -ltn 2>/dev/null | grep -q ':3000'; then
+      mkdir -p /var/log/grafana
       nohup /usr/share/grafana/bin/grafana server \
         --config /etc/grafana/grafana.ini \
         --homepath /usr/share/grafana \
@@ -45,8 +46,6 @@
   when: ansible_service_mgr | default('') != "systemd"
   changed_when: false
 
-# Рендерим конфиг. Если изменился — notify "grafana reload",
-# handler перезапустит сервис.
 - name: Template Grafana config
   template:
     src: grafana.ini.j2
@@ -56,19 +55,24 @@
     mode: '0640'
   notify: "grafana reload"
 
-# Принудительно выполняем handler'ы СЕЙЧАС, а не в конце плея,
-# чтобы следующая проверка health-check била уже в перезапущенную Grafana.
-- name: Flush handlers to restart Grafana now
-  meta: flush_handlers
+- name: Ensure Grafana provisioning dirs exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: grafana
+    mode: '0755'
+  loop:
+    - /etc/grafana/provisioning/datasources
+    - /etc/grafana/provisioning/dashboards
 
-# Health-check: ждём, пока Grafana ответит 200. Без него плеер может
-# завершиться раньше, чем процесс поднимется.
-- name: Wait for Grafana to be ready
-  uri:
-    url: http://127.0.0.1:3000/api/health
-    status_code: 200
-  register: health
-  until: health.status == 200
-  retries: 10
-  delay: 2
-  changed_when: false
+- name: Template InfluxDB datasource
+  template:
+    src: datasource-influxdb.yaml.j2
+    dest: /etc/grafana/provisioning/datasources/influxdb.yaml
+    owner: root
+    group: grafana
+    mode: '0640'
+  notify: "grafana reload"
+
+
