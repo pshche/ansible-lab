@@ -53,20 +53,16 @@
       changed_when: false
 
     - name: Verify metrics are flowing into InfluxDB
-      uri:
-        url: "http://127.0.0.1:8086/api/v2/query?org={{ influx_org }}"
-        method: POST
-        headers:
-          Authorization: "Token {{ influx_token }}"
-          Content-Type: "application/vnd.flux"
-          Accept: "application/csv"
-        body: |
-          from(bucket: "{{ influx_bucket }}")
-            |> range(start: -5m)
-            |> filter(fn: (r) => r._measurement == "cpu")
-            |> limit(n: 1)
-        status_code: 200
+      shell: |
+        curl -s -XPOST "http://127.0.0.1:8086/api/v2/query?org={{ influx_org }}" \
+          -H "Authorization: Token {{ influx_token }}" \
+          -H "Content-Type: application/vnd.flux" \
+          -H "Accept: application/csv" \
+          --data 'from(bucket: "{{ influx_bucket }}") |> range(start: -10m) |> filter(fn: (r) => r._measurement == "cpu") |> limit(n: 1)' | grep -q ',cpu,'
       register: metrics_check
+      until: metrics_check.rc == 0
+      retries: 15
+      delay: 2
       failed_when: false
       changed_when: false
 
@@ -76,5 +72,5 @@
           - "Grafana:    {{ 'OK' if grafana_health.status | default(0) == 200 else 'FAIL (' ~ (grafana_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ grafana_local_port }}"
           - "InfluxDB:   {{ 'OK' if influx_health.status | default(0) == 200 else 'FAIL (' ~ (influx_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ influx_local_port }}"
           - "Setup:      {{ 'OK' if (influx_setup.json is defined and influx_setup.json.allowed is defined and not influx_setup.json.allowed) else 'NOT DONE' }}"
-          - "Metrics:    {{ 'OK (data flowing)' if metrics_check.content is defined and ',cpu,' in metrics_check.content else 'NO DATA in last 5m' }}"
+          - "Metrics:    {{ 'OK (data flowing)' if metrics_check.rc is defined and metrics_check.rc == 0 else 'NO DATA in last 10m' }}"
           - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}  →  InfluxDB :{{ influx_local_port }}"
