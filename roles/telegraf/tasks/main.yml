@@ -21,25 +21,35 @@
         deb: "{{ telegraf_deb_url }}"
         update_cache: yes
       when: not telegraf_binary.stat.exists
-      
-    - name: Ensure Telegraf process is running (container-friendly)
-      shell: |
-        if ! ss -ltn 2>/dev/null | grep -q ':8125' && ! pgrep -x telegraf > /dev/null; then
-          mkdir -p /var/log/telegraf
-          nohup /usr/bin/telegraf --config /etc/telegraf/telegraf.conf \
-            > /var/log/telegraf.log 2>&1 &
-          sleep 2
-        fi
-      args:
-          executable: /bin/bash
-      when: ansible_service_mgr | default('') != "systemd"
-      changed_when: false
 
-    - name: Template Telegraf config
-      template:
-        src: telegraf.conf.j2
-        dest: /etc/telegraf/telegraf.conf
-        owner: root
-        group: root
-        mode: '0644'
-      notify: "telegraf reload"
+- name: Ensure Telegraf service is running (systemd hosts)
+  become: yes
+  systemd_service:
+    name: telegraf
+    state: started
+    enabled: true
+  when: ansible_service_mgr | default('') == "systemd"
+
+- name: Ensure Telegraf process is running (container-friendly)
+  become: yes
+  shell: |
+    set -o pipefail
+    if ! ss -ltn 2>/dev/null | grep -q ':8125' && ! pgrep -x telegraf > /dev/null; then
+      mkdir -p /var/log/telegraf
+      nohup /usr/bin/telegraf --config /etc/telegraf/telegraf.conf \
+        > /var/log/telegraf/telegraf.log 2>&1 &
+      sleep 2
+    fi
+  args:
+    executable: /bin/bash
+  when: ansible_service_mgr | default('') != "systemd"
+  changed_when: false
+
+- name: Template Telegraf config
+  template:
+    src: telegraf.conf.j2
+    dest: /etc/telegraf/telegraf.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: "telegraf reload"
