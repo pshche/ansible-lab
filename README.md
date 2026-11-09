@@ -8,7 +8,7 @@
 1. Добавлен запуск через systemd_service (state: started, enabled: true) для ролей InfluxDB и Telegraf. Теперь на обычных ВМ службы гарантированно запускаются. (Окружение определяется через ansible_service_mgr).
 
 2. Линтер и синтаксис:
-- ansible-playbook --syntax-check проходит без ошибок.
+- ansible-playbook playbook.yaml --syntax-check проходит без ошибок.
 - ansible-lint проходит без ошибок (добавлен конфиг .ansible-lint для игнорирования FQCN-warning'ов).
 - Добавлен CI workflow (.github/workflows/ansible-lint.yml), который автоматически запускает линтер при пуше.
 
@@ -18,7 +18,7 @@
 
 4. Проверка всей цепочки:
 В playbook.yaml добавлен таск "Verify metrics are flowing into InfluxDB". Он делает реальный запрос к InfluxDB API через curl и проверяет наличие метрик. Теперь в конце плейбука выводится "Metrics: OK (data flowing)", что доказывает, что Telegraf пишет в InfluxDB, а не просто висит в процессах. 
-Сам дашборд импортируется в Grafana (ID 14056) — это указано в README.
+
 
 
 ## Что это
