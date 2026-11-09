@@ -1,38 +1,28 @@
-Role Name
-=========
+# Ansible role: influxdb
 
-A brief description of the role goes here.
+Устанавливает InfluxDB 2.x и выполняет идемпотентный setup (org, bucket, user, token).
 
-Requirements
-------------
+## Требования
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- Debian-based система (Ubuntu 22.04)
+- systemd (для реальных ВМ) **или** shell-запуск (для контейнеров).
+  Окружение определяется автоматически через `ansible_service_mgr`:
+  на ВМ — `systemd_service`, в контейнере — `nohup` + проверка порта `8086`.
 
-Role Variables
---------------
+## Переменные
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+| Переменная | По умолчанию | Описание |
+|---|---|---|
+| `influxdb_version` | `2.7.10` | Версия пакета |
+| `influx_ip` | `127.0.0.1` | IP для API |
+| `influx_username` | `admin` | Имя админа (setup) |
+| `influx_password` | `CHANGE_ME` | Пароль (переопределяется из `secrets.yml`) |
+| `influx_org` | `mephi-lab` | Организация |
+| `influx_bucket` | `telegraf` | Bucket для метрик |
+| `influx_token` | `CHANGE_ME` | Токен API (переопределяется из `secrets.yml`) |
 
-Dependencies
-------------
+## Идемпотентность
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
-
-Example Playbook
-----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
-
-License
--------
-
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+- Установка пакета — под `when: not influx_binary.stat.exists`.
+- Setup — `GET /api/v2/setup` → `allowed: false` (уже настроено) → `skipped`.
+- Второй прогон роли даёт `changed=0`.

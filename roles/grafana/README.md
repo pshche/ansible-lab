@@ -1,38 +1,50 @@
-Role Name
-=========
+# Ansible role: grafana
 
-A brief description of the role goes here.
+Устанавливает Grafana, настраивает базовый конфиг и автоматически разворачивает datasource для InfluxDB (через provisioning).
 
-Requirements
-------------
+## Требования
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+- Debian-based система (Ubuntu 22.04)
+- systemd (для реальных ВМ) **или** shell-запуск (для контейнеров).
+  Окружение определяется автоматически через `ansible_service_mgr`:
+  на ВМ — `systemd_service`, в контейнере — `nohup` + проверка порта `3000`.
 
-Role Variables
---------------
+## Переменные
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+| Переменная | По умолчанию | Описание |
+|---|---|---|
+| `grafana_version` | `12.1.0` | Версия пакета |
+| `grafana_admin` | `admin` | Логин администратора |
+| `grafana_password` | `CHANGE_ME` | Пароль (переопределяется из `secrets.yml`) |
+| `grafana_databasepath` | `grafananew.db` | Имя файла базы данных SQLite |
+| `env_type` | `development` | Влияет на уровень логирования (`info` / `debug`) |
+| `grafana_log_mode` | `file` | Режим логирования (`file` / `syslog`) |
 
-Dependencies
-------------
+*Примечание: остальные переменные для секции `[log]` (`grafana_logs_path`, `grafana_max_lines` и т.д.) задаются в `defaults/main.yml`.*
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+## Идемпотентность
 
-Example Playbook
-----------------
+- Установка пакета — под `when: not grafana_binary.stat.exists`.
+- Конфиг и datasource — `template` + `notify: "grafana reload"`.
+- Принудительный вызов `meta: flush_handlers` гарантирует, что Grafana перезапустится с новым конфигом до того, как плейбук пойдёт дальше.
+- Второй прогон роли даёт `changed=0`.
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+## Дашборд и Datasource
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+- **Datasource** создаётся автоматически через файл `datasource-influxdb.yaml.j2`.
+  *Особенность Grafana 12:* provisioned datasource **не отдается** через API (`/api/datasources` возвращает `[]`), но **успешно работает** в UI (зеленая галочка, графики строятся).
+- **Дашборд** необходимо импортировать вручную (2 клика): **Dashboards → New → Import → `14056`** (Telegraf + InfluxDB 2.x). В будущем можно автоматизировать через `dashboard-provider`, но для тестовой лабы достаточно ручного импорта.
 
-License
--------
+## Ограничения
 
-BSD
+- Grafana хранит `admin_password` **в базе**, а не в конфиге. Если база уже создана, смена пароля через `grafana.ini` не применится. Требуется пересоздание контейнера или смена `grafana_databasepath`.
 
-Author Information
-------------------
+## Пример
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+```yaml
+- hosts: servers
+  become: yes
+  vars_files:
+    - secrets.yml
+  roles:
+    - grafana
