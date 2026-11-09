@@ -7,3 +7,10 @@ id_rsa*
 .ansible/
 .DS_Store
 *.tar.vault_pass
+.vault_pass
+ansible_lab.pub
+ansible.cfg
+inventory.yaml
+Dockerfile
+docs/
+experiments/
