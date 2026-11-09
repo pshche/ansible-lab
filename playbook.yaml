@@ -52,14 +52,21 @@
       failed_when: false
       changed_when: false
 
-    - name: Check Grafana datasources
+    - name: Verify metrics are flowing into InfluxDB
       uri:
-        url: "http://127.0.0.1:3000/api/datasources"
-        user: "{{ grafana_admin }}"
-        password: "{{ grafana_password }}"
-        force_basic_auth: true
+        url: "http://127.0.0.1:8086/api/v2/query?org={{ influx_org }}"
+        method: POST
+        headers:
+          Authorization: "Token {{ influx_token }}"
+          Content-Type: "application/vnd.flux"
+          Accept: "application/csv"
+        body: |
+          from(bucket: "{{ influx_bucket }}")
+            |> range(start: -5m)
+            |> filter(fn: (r) => r._measurement == "cpu")
+            |> limit(n: 1)
         status_code: 200
-      register: grafana_datasources
+      register: metrics_check
       failed_when: false
       changed_when: false
 
@@ -69,5 +76,5 @@
           - "Grafana:    {{ 'OK' if grafana_health.status | default(0) == 200 else 'FAIL (' ~ (grafana_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ grafana_local_port }}"
           - "InfluxDB:   {{ 'OK' if influx_health.status | default(0) == 200 else 'FAIL (' ~ (influx_health.status | default('error')) ~ ')' }}  →  http://localhost:{{ influx_local_port }}"
           - "Setup:      {{ 'OK' if (influx_setup.json is defined and influx_setup.json.allowed is defined and not influx_setup.json.allowed) else 'NOT DONE' }}"
-          - "Datasource: {{ 'OK (InfluxDB)' if grafana_datasources.status | default(0) == 200 and grafana_datasources.json | length > 0 else 'MISSING' }}"
-          - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}  →  →  InfluxDB :{{ influx_local_port }}"
+          - "Metrics:    {{ 'OK (data flowing)' if metrics_check.content is defined and ',cpu,' in metrics_check.content else 'NO DATA in last 5m' }}"
+          - "Telegraf:   {{ 'running (pid ' ~ telegraf_proc.stdout ~ ')' if telegraf_proc.rc == 0 else 'stopped' }}  →  InfluxDB :{{ influx_local_port }}"
