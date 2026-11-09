@@ -9,5 +9,5 @@ RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
     && chmod 440 /etc/sudoers.d/ubuntu
 RUN mkdir -p /var/run/sshd
-EXPOSE 22 3000
+EXPOSE 22 3000 8086
 CMD ["/usr/sbin/sshd", "-D"]

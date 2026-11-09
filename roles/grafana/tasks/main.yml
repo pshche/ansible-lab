@@ -31,8 +31,20 @@
     - not grafana_binary.stat.exists
     - grafana_deb_check.status in [200, 302]
 
+# 1. Сначала конфиг
+- name: Template Grafana config
+  template:
+    src: grafana.ini.j2
+    dest: /etc/grafana/grafana.ini
+    owner: root
+    group: grafana
+    mode: '0640'
+  notify: "grafana reload"
+
+# 2. Потом запуск
 - name: Ensure Grafana process is running (container-friendly)
   shell: |
+    set -o pipefail
     if ! ss -ltn 2>/dev/null | grep -q ':3000'; then
       mkdir -p /var/log/grafana
       nohup /usr/share/grafana/bin/grafana server \
@@ -45,15 +57,6 @@
     executable: /bin/bash
   when: ansible_service_mgr | default('') != "systemd"
   changed_when: false
-
-- name: Template Grafana config
-  template:
-    src: grafana.ini.j2
-    dest: /etc/grafana/grafana.ini
-    owner: root
-    group: grafana
-    mode: '0640'
-  notify: "grafana reload"
 
 - name: Ensure Grafana provisioning dirs exist
   file:
@@ -75,4 +78,15 @@
     mode: '0640'
   notify: "grafana reload"
 
+- name: Flush handlers to restart Grafana now
+  meta: flush_handlers
 
+- name: Wait for Grafana to be ready
+  uri:
+    url: http://127.0.0.1:3000/api/health
+    status_code: 200
+  register: health
+  until: health.status == 200
+  retries: 20
+  delay: 3
+  changed_when: false

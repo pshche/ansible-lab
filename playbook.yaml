@@ -27,6 +27,9 @@
         url: "http://127.0.0.1:3000/api/health"
         status_code: 200
       register: grafana_health
+      until: grafana_health.status | default(0) == 200
+      retries: 15
+      delay: 2
       failed_when: false
       changed_when: false
 

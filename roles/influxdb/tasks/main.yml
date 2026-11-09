@@ -31,9 +31,19 @@
         state: absent
       when: not influx_binary.stat.exists
 
+# Окружение определяется автоматически: systemd → systemd_service, иначе → shell.
+- name: Ensure InfluxDB service is running (systemd hosts)
+  become: yes
+  systemd_service:
+    name: influxdb
+    state: started
+    enabled: true
+  when: ansible_service_mgr | default('') == "systemd"
+
 - name: Ensure InfluxDB process is running (container-friendly)
   become: yes
   shell: |
+    set -o pipefail
     if ! ss -ltn 2>/dev/null | grep -q ':8086'; then
       mkdir -p /var/log/influxdb
       nohup /usr/bin/influxd > /var/log/influxdb/influxdb.log 2>&1 &
@@ -54,9 +64,6 @@
   delay: 2
   changed_when: false
 
-# --- Идемпотентный setup ---
-# /api/v2/setup (GET) возвращает {"allowed": true}, если база ещё не настроена,
-# и {"allowed": false}, если setup уже выполнен.
 - name: Check if InfluxDB setup is required
   uri:
     url: "http://{{ influx_ip }}:8086/api/v2/setup"

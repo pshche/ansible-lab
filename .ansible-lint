@@ -1,0 +1,10 @@
+# .ansible-lint
+profile: min
+warn_list:
+  - fqcn[action-core]
+  - fqcn[action]
+  - yaml[comments]
+  - name[play]
+exclude_paths:
+  - .cache/
+  - .git/

@@ -6,4 +6,4 @@ id_rsa*
 *.log
 .ansible/
 .DS_Store
-*.tar
+*.tar.vault_pass
