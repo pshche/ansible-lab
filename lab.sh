@@ -29,7 +29,7 @@ RUN useradd -m -s /bin/bash ubuntu \
     && echo 'ubuntu ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/ubuntu \
     && chmod 440 /etc/sudoers.d/ubuntu
 RUN mkdir -p /var/run/sshd
-EXPOSE 22 3000
+EXPOSE 22 3000 8086
 CMD ["/usr/sbin/sshd", "-D"]
 DOCKERFILE
 
@@ -66,6 +66,13 @@ for c in "$C1" "$C2"; do
   docker exec "$c" chmod 600 /home/ubuntu/.ssh/authorized_keys
 done
 
+# Создать .vault_pass для ansible-vault (пароль 123 — для тестовой лабы)
+if [ ! -f "$LAB_DIR/.vault_pass" ]; then
+  echo "123" > "$LAB_DIR/.vault_pass"
+  chmod 600 "$LAB_DIR/.vault_pass"
+  echo "Создан .vault_pass (пароль: 123) для ansible-vault"
+fi
+
 # Относительные пути — репо портативно
 cat > ansible.cfg <<EOF
 [defaults]
@@ -73,6 +80,7 @@ inventory = inventory.yaml
 remote_user = ubuntu
 private_key_file = ./ansible_lab
 host_key_checking = False
+vault_password_file = ./.vault_pass
 EOF
 
 cat > inventory.yaml <<EOF
@@ -122,12 +130,12 @@ echo "  InfluxDB first_server: http://localhost:8086"
 echo "  InfluxDB second_server: http://localhost:8087"
 echo
 echo "─────────────────────────────────────────────────────────────"
-echo "Дальше — запусти плейбук с паролем от Ansible Vault:"
+echo "Дальше — запусти плейбук:"
 echo
-echo "  ansible-playbook playbook.yaml --ask-vault-pass"
+echo "  ansible-playbook playbook.yaml"
 echo
-echo "Пароль от vault — в README.md, раздел «Доступы для проверки»."
-echo "  (файл secrets.yml зашифрован, без пароля плейбук не запустится (123))"
+echo "Пароль от vault (123) подхватывается из .vault_pass автоматически,"
+echo "флаг --ask-vault-pass не нужен. Пароль также в README.md."
 echo "─────────────────────────────────────────────────────────────"
 echo
 echo "Остановить лабораторию: docker rm -f $C1 $C2"
